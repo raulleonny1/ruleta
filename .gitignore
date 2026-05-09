@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Claves locales solo para copiar a Vercel / .env.local (no subir)
+ENV-PARA-VERCEL.txt
+
 # vercel
 .vercel
 
