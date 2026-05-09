@@ -225,9 +225,8 @@ export default function Home() {
         <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
           Ruleta de colores
         </h1>
-        <p className="mt-2 text-xs text-zinc-500">
-          Sala: <span className="font-mono font-semibold text-zinc-700">{roomId}</span> — misma URL con{" "}
-          <span className="font-mono">?sala=tuNombre</span> en iPad y PC.
+        <p className="mt-1 text-xs text-zinc-500">
+          Sala: <span className="font-mono font-medium text-zinc-700">{roomId}</span>
         </p>
         {syncError && (
           <p className="mt-2 text-pretty text-xs text-amber-800" role="alert">

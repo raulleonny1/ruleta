@@ -44,6 +44,21 @@ function entryFromColor(c: WheelColor): ChosenColorEntry {
   };
 }
 
+/** Firestore no admite `undefined` en documentos. */
+export function chosenForFirestore(chosen: ChosenColorEntry[]) {
+  return chosen.map((e) => {
+    const row: { id: string; name: string; fill: string; stroke?: string } = {
+      id: e.id,
+      name: e.name,
+      fill: e.fill,
+    };
+    if (e.stroke != null && e.stroke !== "") {
+      row.stroke = e.stroke;
+    }
+    return row;
+  });
+}
+
 export function subscribeRuletaRoom(
   roomId: string,
   onData: (data: RuletaRoomSnapshot) => void,
@@ -86,7 +101,7 @@ export async function commitRoomState(
       ref,
       {
         colorIds,
-        chosen,
+        chosen: chosenForFirestore(chosen),
         spinSeq: nextSeq,
       },
       { merge: true },
@@ -121,7 +136,7 @@ export async function runRemoteSpinTransaction(roomId: string): Promise<void> {
 
     transaction.update(ref, {
       colorIds: newIds,
-      chosen,
+      chosen: chosenForFirestore(chosen),
       spinSeq: nextSeq,
     });
   });
