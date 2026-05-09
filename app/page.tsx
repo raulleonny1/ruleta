@@ -25,6 +25,19 @@ function sameChosen(a: ChosenColorEntry[], b: ChosenColorEntry[]) {
   return a.length === b.length && a.every((x, i) => x.id === b[i]?.id);
 }
 
+/** Un solo id quitado entre dos listas consecutivas. */
+function diffOneRemoved(oldIds: string[], newIds: string[]): string | null {
+  if (oldIds.length !== newIds.length + 1) return null;
+  const removed = oldIds.filter((id) => !newIds.includes(id));
+  return removed.length === 1 ? removed[0]! : null;
+}
+
+type PendingRoom = {
+  ids: string[];
+  chosen: ChosenColorEntry[];
+  spinSeq: number;
+};
+
 export default function Home() {
   const [roomId, setRoomId] = useState("default");
   const [remaining, setRemaining] = useState<WheelColor[]>(INITIAL_COLORS);
@@ -33,9 +46,12 @@ export default function Home() {
   const [syncReady, setSyncReady] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [remoteBusy, setRemoteBusy] = useState(false);
+  const [replaySpin, setReplaySpin] = useState<{ v: number; removeId: string } | null>(null);
 
   const lastIdsRef = useRef(colorsToIds(INITIAL_COLORS));
   const lastChosenRef = useRef<ChosenColorEntry[]>([]);
+  const pendingRoomRef = useRef<PendingRoom | null>(null);
+  const replayCounterRef = useRef(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -49,8 +65,22 @@ export default function Home() {
     setRemaining(INITIAL_COLORS);
     setChosenSequence([]);
     setSyncReady(false);
+    setReplaySpin(null);
+    pendingRoomRef.current = null;
     setWheelKey((k) => k + 1);
   }, [roomId]);
+
+  const applyPendingRoom = useCallback(() => {
+    const p = pendingRoomRef.current;
+    if (p) {
+      lastIdsRef.current = p.ids;
+      lastChosenRef.current = p.chosen;
+      setRemaining(colorIdsToColors(p.ids));
+      setChosenSequence(p.chosen);
+    }
+    pendingRoomRef.current = null;
+    setReplaySpin(null);
+  }, []);
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -69,6 +99,16 @@ export default function Home() {
           const incomingIds = data.colorIds;
           const incomingChosen = data.chosen;
 
+          const pending = pendingRoomRef.current;
+          if (
+            pending &&
+            sameIdList(incomingIds, pending.ids) &&
+            sameChosen(incomingChosen, pending.chosen)
+          ) {
+            setSyncReady(true);
+            return;
+          }
+
           if (
             sameIdList(incomingIds, lastIdsRef.current) &&
             sameChosen(incomingChosen, lastChosenRef.current)
@@ -77,6 +117,21 @@ export default function Home() {
             return;
           }
 
+          const removedId = diffOneRemoved(lastIdsRef.current, incomingIds);
+          if (removedId) {
+            pendingRoomRef.current = {
+              ids: incomingIds,
+              chosen: incomingChosen,
+              spinSeq: data.spinSeq,
+            };
+            replayCounterRef.current += 1;
+            setReplaySpin({ v: replayCounterRef.current, removeId: removedId });
+            setSyncReady(true);
+            return;
+          }
+
+          pendingRoomRef.current = null;
+          setReplaySpin(null);
           lastIdsRef.current = incomingIds;
           lastChosenRef.current = incomingChosen;
           setRemaining(colorIdsToColors(incomingIds));
@@ -140,6 +195,8 @@ export default function Home() {
     lastChosenRef.current = chosen;
     setRemaining(fresh);
     setChosenSequence(chosen);
+    setReplaySpin(null);
+    pendingRoomRef.current = null;
     setWheelKey((k) => k + 1);
     try {
       getFirebaseApp();
@@ -187,6 +244,10 @@ export default function Home() {
           colors={remaining}
           chosenSequence={chosenSequence}
           onAfterRemove={handleRemoved}
+          replaySpin={replaySpin}
+          onAfterRemoteReplayComplete={applyPendingRoom}
+          onRemoteReplayFailed={applyPendingRoom}
+          spinLocked={replaySpin != null}
         />
       )}
 
@@ -194,7 +255,7 @@ export default function Home() {
         <button
           type="button"
           onClick={remoteSpin}
-          disabled={remoteBusy || remaining.length <= 1 || !syncReady}
+          disabled={remoteBusy || remaining.length <= 1 || !syncReady || replaySpin != null}
           className="rounded-full bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition enabled:hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {remoteBusy ? "Enviando giro…" : "Girar sala (otros dispositivos)"}

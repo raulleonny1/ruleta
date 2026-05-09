@@ -107,9 +107,23 @@ type Props = {
   colors: WheelColor[];
   chosenSequence: ChosenColorEntry[];
   onAfterRemove?: (removed: WheelColor) => void;
+  /** Giro replicado desde Firestore (v distinto en cada evento). */
+  replaySpin?: { v: number; removeId: string } | null;
+  onAfterRemoteReplayComplete?: () => void;
+  onRemoteReplayFailed?: () => void;
+  /** Bloquea “Girar ruleta” mientras se anima un giro remoto. */
+  spinLocked?: boolean;
 };
 
-export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
+export function ColorWheel({
+  colors,
+  chosenSequence,
+  onAfterRemove,
+  replaySpin,
+  onAfterRemoteReplayComplete,
+  onRemoteReplayFailed,
+  spinLocked,
+}: Props) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
@@ -120,6 +134,8 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
   const spinWinIndexRef = useRef<number | null>(null);
   const spinEndedRef = useRef(false);
   const spinFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spinKindRef = useRef<"local" | "remote">("local");
+  const lastReplayVRef = useRef(0);
 
   const n = colors.length;
 
@@ -160,6 +176,9 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
       spinFallbackTimerRef.current = null;
     }
 
+    const kind = spinKindRef.current;
+    spinKindRef.current = "local";
+
     setSpinning(false);
     const idx = spinWinIndexRef.current;
     spinWinIndexRef.current = null;
@@ -173,9 +192,13 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
       colorName: removed.name,
       fill: removed.fill,
     });
-    onAfterRemove?.(removed);
+    if (kind === "remote") {
+      onAfterRemoteReplayComplete?.();
+    } else {
+      onAfterRemove?.(removed);
+    }
     setPendingRemoveIndex(null);
-  }, [onAfterRemove]);
+  }, [onAfterRemove, onAfterRemoteReplayComplete]);
 
   const finishSpin = useCallback(
     (e: React.TransitionEvent<SVGGElement>) => {
@@ -184,6 +207,46 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
       applySpinComplete();
     },
     [applySpinComplete],
+  );
+
+  const playDrum = useCallback(() => {
+    const drum = drumRef.current;
+    if (drum) {
+      drum.pause();
+      drum.currentTime = 0;
+      void drum.play().catch(() => {
+        /* autoplay bloqueado o archivo ausente */
+      });
+    }
+  }, []);
+
+  const beginSpinWithWinIndex = useCallback(
+    (winIndex: number) => {
+      if (spinning || n <= 1) return;
+
+      const sliceSize = 360 / n;
+      const centerOfWinner = winIndex * sliceSize + sliceSize / 2;
+
+      const need = ((-centerOfWinner - rotation) % 360 + 360) % 360;
+      const totalDelta = FULL_SPINS * 360 + need;
+
+      spinEndedRef.current = false;
+      spinWinIndexRef.current = winIndex;
+      if (spinFallbackTimerRef.current) {
+        clearTimeout(spinFallbackTimerRef.current);
+      }
+      spinFallbackTimerRef.current = setTimeout(() => {
+        spinFallbackTimerRef.current = null;
+        applySpinComplete();
+      }, SPIN_MS + 250);
+
+      setPendingRemoveIndex(winIndex);
+      setCelebration(null);
+      setSpinning(true);
+      setRotation((r) => r + totalDelta);
+      playDrum();
+    },
+    [n, rotation, spinning, applySpinComplete, playDrum],
   );
 
   const spin = useCallback(() => {
@@ -196,36 +259,29 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
     if (removableIndices.length === 0) return;
     const winIndex =
       removableIndices[Math.floor(Math.random() * removableIndices.length)];
-    const sliceSize = 360 / n;
-    const centerOfWinner = winIndex * sliceSize + sliceSize / 2;
 
-    const need = ((-centerOfWinner - rotation) % 360 + 360) % 360;
-    const totalDelta = FULL_SPINS * 360 + need;
+    spinKindRef.current = "local";
+    beginSpinWithWinIndex(winIndex);
+  }, [colors, n, rotation, spinning, beginSpinWithWinIndex]);
 
-    spinEndedRef.current = false;
-    spinWinIndexRef.current = winIndex;
-    if (spinFallbackTimerRef.current) {
-      clearTimeout(spinFallbackTimerRef.current);
+  useEffect(() => {
+    if (!replaySpin || spinning || n <= 1) return;
+    if (lastReplayVRef.current === replaySpin.v) return;
+    const winIndex = colors.findIndex((c) => c.id === replaySpin.removeId);
+    if (winIndex < 0) {
+      onRemoteReplayFailed?.();
+      return;
     }
-    spinFallbackTimerRef.current = setTimeout(() => {
-      spinFallbackTimerRef.current = null;
-      applySpinComplete();
-    }, SPIN_MS + 250);
+    spinKindRef.current = "remote";
+    beginSpinWithWinIndex(winIndex);
+    lastReplayVRef.current = replaySpin.v;
+  }, [replaySpin, spinning, n, colors, beginSpinWithWinIndex, onRemoteReplayFailed]);
 
-    setPendingRemoveIndex(winIndex);
-    setCelebration(null);
-    setSpinning(true);
-    setRotation((r) => r + totalDelta);
-
-    const drum = drumRef.current;
-    if (drum) {
-      drum.pause();
-      drum.currentTime = 0;
-      void drum.play().catch(() => {
-        /* autoplay bloqueado o archivo ausente */
-      });
+  useEffect(() => {
+    if (!replaySpin) {
+      lastReplayVRef.current = 0;
     }
-  }, [n, rotation, spinning, applySpinComplete]);
+  }, [replaySpin]);
 
   const isFinal = n === 1;
   const isEmpty = n === 0;
@@ -439,7 +495,7 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
       <button
         type="button"
         onClick={spin}
-        disabled={spinning || n <= 1}
+        disabled={spinning || n <= 1 || spinLocked}
         className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition enabled:hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {n <= 1 ? "Ruleta terminada" : spinning ? "Girando…" : "Girar ruleta"}
