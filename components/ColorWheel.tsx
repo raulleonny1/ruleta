@@ -115,8 +115,15 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [pendingRemoveIndex, setPendingRemoveIndex] = useState<number | null>(null);
   const drumRef = useRef<HTMLAudioElement | null>(null);
+  /** Última lista de colores (para cierre de giro fiable en todos los navegadores). */
+  const colorsRef = useRef(colors);
+  const spinWinIndexRef = useRef<number | null>(null);
+  const spinEndedRef = useRef(false);
+  const spinFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const n = colors.length;
+
+  colorsRef.current = colors;
 
   useEffect(() => {
     return () => {
@@ -124,6 +131,10 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
       if (a) {
         a.pause();
         a.currentTime = 0;
+      }
+      if (spinFallbackTimerRef.current) {
+        clearTimeout(spinFallbackTimerRef.current);
+        spinFallbackTimerRef.current = null;
       }
     };
   }, []);
@@ -141,22 +152,38 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
     });
   }, [colors, n]);
 
+  const applySpinComplete = useCallback(() => {
+    if (spinEndedRef.current) return;
+    spinEndedRef.current = true;
+    if (spinFallbackTimerRef.current) {
+      clearTimeout(spinFallbackTimerRef.current);
+      spinFallbackTimerRef.current = null;
+    }
+
+    setSpinning(false);
+    const idx = spinWinIndexRef.current;
+    spinWinIndexRef.current = null;
+    if (idx === null) return;
+
+    const removed = colorsRef.current[idx];
+    if (!removed) return;
+
+    setCelebration({
+      id: `${removed.id}-${Date.now()}`,
+      colorName: removed.name,
+      fill: removed.fill,
+    });
+    onAfterRemove?.(removed);
+    setPendingRemoveIndex(null);
+  }, [onAfterRemove]);
+
   const finishSpin = useCallback(
     (e: React.TransitionEvent<SVGGElement>) => {
       if (e.propertyName !== "transform") return;
       if (e.target !== e.currentTarget) return;
-      setSpinning(false);
-      if (pendingRemoveIndex === null) return;
-      const removed = colors[pendingRemoveIndex];
-      setCelebration({
-        id: `${removed.id}-${Date.now()}`,
-        colorName: removed.name,
-        fill: removed.fill,
-      });
-      onAfterRemove?.(removed);
-      setPendingRemoveIndex(null);
+      applySpinComplete();
     },
-    [colors, onAfterRemove, pendingRemoveIndex],
+    [applySpinComplete],
   );
 
   const spin = useCallback(() => {
@@ -175,6 +202,16 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
     const need = ((-centerOfWinner - rotation) % 360 + 360) % 360;
     const totalDelta = FULL_SPINS * 360 + need;
 
+    spinEndedRef.current = false;
+    spinWinIndexRef.current = winIndex;
+    if (spinFallbackTimerRef.current) {
+      clearTimeout(spinFallbackTimerRef.current);
+    }
+    spinFallbackTimerRef.current = setTimeout(() => {
+      spinFallbackTimerRef.current = null;
+      applySpinComplete();
+    }, SPIN_MS + 250);
+
     setPendingRemoveIndex(winIndex);
     setCelebration(null);
     setSpinning(true);
@@ -188,7 +225,7 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
         /* autoplay bloqueado o archivo ausente */
       });
     }
-  }, [n, rotation, spinning]);
+  }, [n, rotation, spinning, applySpinComplete]);
 
   const isFinal = n === 1;
   const isEmpty = n === 0;
@@ -228,6 +265,7 @@ export function ColorWheel({ colors, chosenSequence, onAfterRemove }: Props) {
                 transform: `rotate(${rotation}deg)`,
                 transformOrigin: `${CX}px ${CY}px`,
                 transition: spinning ? `transform ${SPIN_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)` : "none",
+                willChange: spinning ? "transform" : "auto",
               }}
               onTransitionEnd={finishSpin}
             >

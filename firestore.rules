@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Sala compartida de la ruleta. Para producción restringe por auth o por sala secreta.
+    match /ruletaRooms/{roomId} {
+      allow read, write: if true;
+    }
+  }
+}
