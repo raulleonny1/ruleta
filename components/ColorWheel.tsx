@@ -513,10 +513,8 @@ export function ColorWheel({
         <button
           type="button"
           onClick={spinToDarkRed}
-          disabled={
-            spinning || n <= 1 || spinLocked || !colors.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)
-          }
-          className="rounded-full border border-zinc-500 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition enabled:hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={n <= 1 || spinLocked || !colors.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)}
+          className="rounded-full border border-zinc-500 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-100"
         >
           Siguiente
         </button>
