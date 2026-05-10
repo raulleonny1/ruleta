@@ -12,6 +12,7 @@ import {
   subscribeRuletaRoom,
 } from "@/lib/ruleta-firestore-sync";
 import {
+  FINAL_SURVIVING_COLOR_ID,
   INITIAL_COLORS,
   type ChosenColorEntry,
   type WheelColor,
@@ -219,6 +220,40 @@ export default function Home() {
     }
   }, [roomId]);
 
+  const skipToFinalRed = useCallback(async () => {
+    const ids = lastIdsRef.current;
+    const ordered = ids
+      .map((id) => INITIAL_COLORS.find((c) => c.id === id))
+      .filter((c): c is WheelColor => Boolean(c));
+    if (!ordered.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)) return;
+
+    const toRemove = ordered.filter((c) => c.id !== FINAL_SURVIVING_COLOR_ID);
+    if (toRemove.length === 0) return;
+
+    const finalColor = INITIAL_COLORS.find((c) => c.id === FINAL_SURVIVING_COLOR_ID)!;
+    const appended: ChosenColorEntry[] = toRemove.map((c) => ({
+      id: c.id,
+      name: c.name,
+      fill: c.fill,
+      stroke: c.stroke,
+    }));
+    const nextChosen: ChosenColorEntry[] = [...lastChosenRef.current, ...appended];
+    const nextIds = [FINAL_SURVIVING_COLOR_ID];
+
+    lastIdsRef.current = nextIds;
+    lastChosenRef.current = nextChosen;
+    setRemaining([finalColor]);
+    setChosenSequence(nextChosen);
+    setWheelKey((k) => k + 1);
+
+    try {
+      getFirebaseApp();
+      await commitRoomState(roomId, nextIds, nextChosen);
+    } catch {
+      /* sin Firebase: solo estado local */
+    }
+  }, [roomId]);
+
   return (
     <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-gradient-to-b from-zinc-100 to-zinc-200 px-4 py-12">
       <header className="mb-6 max-w-lg text-center">
@@ -243,6 +278,7 @@ export default function Home() {
           colors={remaining}
           chosenSequence={chosenSequence}
           onAfterRemove={handleRemoved}
+          onSkipToFinal={skipToFinalRed}
           replaySpin={replaySpin}
           onAfterRemoteReplayComplete={applyPendingRoom}
           onRemoteReplayFailed={applyPendingRoom}

@@ -107,6 +107,8 @@ type Props = {
   colors: WheelColor[];
   chosenSequence: ChosenColorEntry[];
   onAfterRemove?: (removed: WheelColor) => void;
+  /** Salta giros y deja solo el color final (rojo oscuro), en orden actual de la ruleta. */
+  onSkipToFinal?: () => void;
   /** Giro replicado desde Firestore (v distinto en cada evento). */
   replaySpin?: { v: number; removeId: string } | null;
   onAfterRemoteReplayComplete?: () => void;
@@ -119,6 +121,7 @@ export function ColorWheel({
   colors,
   chosenSequence,
   onAfterRemove,
+  onSkipToFinal,
   replaySpin,
   onAfterRemoteReplayComplete,
   onRemoteReplayFailed,
@@ -492,14 +495,30 @@ export function ColorWheel({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={spin}
-        disabled={spinning || n <= 1 || spinLocked}
-        className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition enabled:hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {n <= 1 ? "Ruleta terminada" : spinning ? "Girando…" : "Girar ruleta"}
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={spin}
+          disabled={spinning || n <= 1 || spinLocked}
+          className="rounded-full bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition enabled:hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {n <= 1 ? "Ruleta terminada" : spinning ? "Girando…" : "Girar ruleta"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSkipToFinal?.()}
+          disabled={
+            spinning ||
+            n <= 1 ||
+            spinLocked ||
+            !onSkipToFinal ||
+            !colors.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)
+          }
+          className="rounded-full border border-zinc-500 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition enabled:hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Siguiente
+        </button>
+      </div>
     </div>
   );
 }
