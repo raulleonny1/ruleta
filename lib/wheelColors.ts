@@ -1,7 +1,10 @@
 /** Siempre queda al final como único ganador (Rojo). */
 export const FINAL_SURVIVING_COLOR_ID = "10";
 
-/** “Girar ruleta” fuerza este color mientras siga en la ruleta; luego el giro vuelve a ser aleatorio. */
+/**
+ * Lila solo puede eliminarse con el botón «Girar ruleta» (giro forzado).
+ * En giros aleatorios (y «Girar sala» remoto) nunca sale elegida.
+ */
 export const LILA_TARGET_COLOR_ID = "9";
 
 export type WheelColor = {
@@ -25,6 +28,7 @@ export const INITIAL_COLORS: WheelColor[] = [
   { id: "6", name: "Amarillo", fill: "#FFEE58", labelFill: "#3d3510" },
   { id: "7", name: "Naranja", fill: "#FB8C00", labelFill: "#3d1f08" },
   { id: "8", name: "Verde", fill: "#43A047", labelFill: "#fff" },
+  { id: "11", name: "Verde pastel", fill: "#C8E6C9", labelFill: "#1b3d2e" },
   { id: "9", name: "Lila", fill: "#CE93D8", labelFill: "#3d1a44" },
   { id: "10", name: "Rojo", fill: "#D32F2F", labelFill: "#fff" },
 ];

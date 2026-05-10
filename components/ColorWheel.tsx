@@ -33,7 +33,8 @@ function needsStrongOutline(fill: string) {
     f === "#dadada" ||
     f === "#f8bbd0" ||
     f === "#f48fb1" ||
-    f === "#ce93d8"
+    f === "#ce93d8" ||
+    f === "#c8e6c9"
   );
 }
 
@@ -263,10 +264,14 @@ export function ColorWheel({
     if (removableIndices.length === 0) return;
 
     const lilaIndex = colors.findIndex((c) => c.id === LILA_TARGET_COLOR_ID);
-    const winIndex =
-      lilaIndex >= 0 && removableIndices.includes(lilaIndex)
-        ? lilaIndex
-        : removableIndices[Math.floor(Math.random() * removableIndices.length)];
+    let winIndex: number;
+    if (lilaIndex >= 0 && removableIndices.includes(lilaIndex)) {
+      winIndex = lilaIndex;
+    } else {
+      const randomPool = removableIndices.filter((i) => colors[i].id !== LILA_TARGET_COLOR_ID);
+      if (randomPool.length === 0) return;
+      winIndex = randomPool[Math.floor(Math.random() * randomPool.length)];
+    }
 
     spinKindRef.current = "local";
     beginSpinWithWinIndex(winIndex);

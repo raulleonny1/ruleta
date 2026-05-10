@@ -9,6 +9,7 @@ import { getFirebaseApp } from "@/lib/firebase";
 import {
   FINAL_SURVIVING_COLOR_ID,
   INITIAL_COLORS,
+  LILA_TARGET_COLOR_ID,
   type ChosenColorEntry,
   type WheelColor,
 } from "@/lib/wheelColors";
@@ -109,7 +110,7 @@ export async function commitRoomState(
   });
 }
 
-/** Quita un color al azar (respeta Rojo al final) y actualiza la sala — útil desde otro móvil. */
+/** Quita un color al azar (respeta Rojo al final; Lila solo sale con «Girar ruleta» local). */
 export async function runRemoteSpinTransaction(roomId: string): Promise<void> {
   const ref = doc(db(), RULETA_ROOMS, roomId);
   await runTransaction(db(), async (transaction) => {
@@ -124,9 +125,10 @@ export async function runRemoteSpinTransaction(roomId: string): Promise<void> {
     const removableIds = ids.filter(
       (id) => !redStillIn || id !== FINAL_SURVIVING_COLOR_ID,
     );
-    if (removableIds.length === 0) return;
+    const pool = removableIds.filter((id) => id !== LILA_TARGET_COLOR_ID);
+    if (pool.length === 0) return;
 
-    const pick = removableIds[Math.floor(Math.random() * removableIds.length)];
+    const pick = pool[Math.floor(Math.random() * pool.length)];
     const newIds = ids.filter((id) => id !== pick);
     const color = INITIAL_COLORS.find((c) => c.id === pick);
     if (!color) return;
