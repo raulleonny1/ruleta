@@ -33,6 +33,7 @@ function needsStrongOutline(fill: string) {
     f === "#dadada" ||
     f === "#f8bbd0" ||
     f === "#f48fb1" ||
+    f === "#f06292" ||
     f === "#ce93d8" ||
     f === "#c8e6c9"
   );

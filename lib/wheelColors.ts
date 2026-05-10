@@ -21,6 +21,7 @@ export type ChosenColorEntry = Pick<WheelColor, "id" | "name" | "fill" | "stroke
 
 export const INITIAL_COLORS: WheelColor[] = [
   { id: "1", name: "Rosado", fill: "#F48FB1", labelFill: "#4a1026" },
+  { id: "12", name: "Rosado 2", fill: "#F06292", labelFill: "#fff" },
   { id: "2", name: "Fucsia", fill: "#D81B60", labelFill: "#fff" },
   { id: "3", name: "Celeste", fill: "#4FC3F7", labelFill: "#083d52" },
   { id: "4", name: "Blanco", fill: "#FFFFFF", stroke: "#BDBDBD", labelFill: "#333" },
