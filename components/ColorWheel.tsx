@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FINAL_SURVIVING_COLOR_ID,
+  LILA_TARGET_COLOR_ID,
   type ChosenColorEntry,
   type WheelColor,
 } from "@/lib/wheelColors";
@@ -28,8 +29,11 @@ function needsStrongOutline(fill: string) {
     f === "#ffffff" ||
     f === "#fff" ||
     f === "#fff3b0" ||
+    f === "#ffee58" ||
     f === "#dadada" ||
-    f === "#f8bbd0"
+    f === "#f8bbd0" ||
+    f === "#f48fb1" ||
+    f === "#ce93d8"
   );
 }
 
@@ -257,14 +261,18 @@ export function ColorWheel({
       .map((_, i) => i)
       .filter((i) => !redStillIn || colors[i].id !== FINAL_SURVIVING_COLOR_ID);
     if (removableIndices.length === 0) return;
+
+    const lilaIndex = colors.findIndex((c) => c.id === LILA_TARGET_COLOR_ID);
     const winIndex =
-      removableIndices[Math.floor(Math.random() * removableIndices.length)];
+      lilaIndex >= 0 && removableIndices.includes(lilaIndex)
+        ? lilaIndex
+        : removableIndices[Math.floor(Math.random() * removableIndices.length)];
 
     spinKindRef.current = "local";
     beginSpinWithWinIndex(winIndex);
   }, [colors, n, rotation, spinning, beginSpinWithWinIndex]);
 
-  /** Giro igual que “Girar ruleta”, pero la flecha cae en rojo oscuro y lo elimina (si sigue en la ruleta). */
+  /** Giro igual que “Girar ruleta”, pero la flecha cae en Rojo y lo elimina (si sigue en la ruleta). */
   const spinToDarkRed = useCallback(() => {
     if (spinning || n <= 1) return;
     const winIndex = colors.findIndex((c) => c.id === FINAL_SURVIVING_COLOR_ID);

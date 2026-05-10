@@ -1,5 +1,8 @@
-/** Siempre queda al final como único ganador (Rojo oscuro). */
+/** Siempre queda al final como único ganador (Rojo). */
 export const FINAL_SURVIVING_COLOR_ID = "10";
+
+/** “Girar ruleta” fuerza este color mientras siga en la ruleta; luego el giro vuelve a ser aleatorio. */
+export const LILA_TARGET_COLOR_ID = "9";
 
 export type WheelColor = {
   id: string;
@@ -14,15 +17,14 @@ export type WheelColor = {
 export type ChosenColorEntry = Pick<WheelColor, "id" | "name" | "fill" | "stroke">;
 
 export const INITIAL_COLORS: WheelColor[] = [
-  { id: "1", name: "Rosa claro", fill: "#F8BBD0", labelFill: "#3d1a26" },
-  { id: "2", name: "Verde menta", fill: "#A8E6CF", labelFill: "#143d2e" },
-  { id: "3", name: "Fucsia", fill: "#E91E8C", labelFill: "#fff" },
-  { id: "4", name: "Gris claro", fill: "#DADADA", stroke: "#BDBDBD", labelFill: "#2a2a2a" },
-  { id: "5", name: "Amarillo pastel", fill: "#FFF3B0", labelFill: "#3d3510" },
-  { id: "6", name: "Morado", fill: "#7E57C2", labelFill: "#fff" },
-  { id: "7", name: "Naranja", fill: "#FF9E57", labelFill: "#3d1f08" },
-  { id: "8", name: "Celeste", fill: "#7EC8E3", labelFill: "#0c2a33" },
-  { id: "9", name: "Verde brillante", fill: "#00E676", labelFill: "#042818" },
-  { id: "10", name: "Rojo oscuro", fill: "#8B1538", labelFill: "#fff" },
-  { id: "11", name: "Blanco", fill: "#FFFFFF", stroke: "#CFCFCF", labelFill: "#333" },
+  { id: "1", name: "Rosado", fill: "#F48FB1", labelFill: "#4a1026" },
+  { id: "2", name: "Fucsia", fill: "#D81B60", labelFill: "#fff" },
+  { id: "3", name: "Celeste", fill: "#4FC3F7", labelFill: "#083d52" },
+  { id: "4", name: "Blanco", fill: "#FFFFFF", stroke: "#BDBDBD", labelFill: "#333" },
+  { id: "5", name: "Morado", fill: "#5E35B1", labelFill: "#fff" },
+  { id: "6", name: "Amarillo", fill: "#FFEE58", labelFill: "#3d3510" },
+  { id: "7", name: "Naranja", fill: "#FB8C00", labelFill: "#3d1f08" },
+  { id: "8", name: "Verde", fill: "#43A047", labelFill: "#fff" },
+  { id: "9", name: "Lila", fill: "#CE93D8", labelFill: "#3d1a44" },
+  { id: "10", name: "Rojo", fill: "#D32F2F", labelFill: "#fff" },
 ];

@@ -109,7 +109,7 @@ export async function commitRoomState(
   });
 }
 
-/** Quita un color al azar (respeta rojo al final) y actualiza la sala — útil desde otro móvil. */
+/** Quita un color al azar (respeta Rojo al final) y actualiza la sala — útil desde otro móvil. */
 export async function runRemoteSpinTransaction(roomId: string): Promise<void> {
   const ref = doc(db(), RULETA_ROOMS, roomId);
   await runTransaction(db(), async (transaction) => {
