@@ -107,8 +107,6 @@ type Props = {
   colors: WheelColor[];
   chosenSequence: ChosenColorEntry[];
   onAfterRemove?: (removed: WheelColor) => void;
-  /** Salta giros y deja solo el color final (rojo oscuro), en orden actual de la ruleta. */
-  onSkipToFinal?: () => void;
   /** Giro replicado desde Firestore (v distinto en cada evento). */
   replaySpin?: { v: number; removeId: string } | null;
   onAfterRemoteReplayComplete?: () => void;
@@ -121,7 +119,6 @@ export function ColorWheel({
   colors,
   chosenSequence,
   onAfterRemove,
-  onSkipToFinal,
   replaySpin,
   onAfterRemoteReplayComplete,
   onRemoteReplayFailed,
@@ -266,6 +263,15 @@ export function ColorWheel({
     spinKindRef.current = "local";
     beginSpinWithWinIndex(winIndex);
   }, [colors, n, rotation, spinning, beginSpinWithWinIndex]);
+
+  /** Giro igual que “Girar ruleta”, pero la flecha cae en rojo oscuro y lo elimina (si sigue en la ruleta). */
+  const spinToDarkRed = useCallback(() => {
+    if (spinning || n <= 1) return;
+    const winIndex = colors.findIndex((c) => c.id === FINAL_SURVIVING_COLOR_ID);
+    if (winIndex < 0) return;
+    spinKindRef.current = "local";
+    beginSpinWithWinIndex(winIndex);
+  }, [colors, n, spinning, beginSpinWithWinIndex]);
 
   useEffect(() => {
     if (!replaySpin || spinning || n <= 1) return;
@@ -506,13 +512,9 @@ export function ColorWheel({
         </button>
         <button
           type="button"
-          onClick={() => onSkipToFinal?.()}
+          onClick={spinToDarkRed}
           disabled={
-            spinning ||
-            n <= 1 ||
-            spinLocked ||
-            !onSkipToFinal ||
-            !colors.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)
+            spinning || n <= 1 || spinLocked || !colors.some((c) => c.id === FINAL_SURVIVING_COLOR_ID)
           }
           className="rounded-full border border-zinc-500 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition enabled:hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
